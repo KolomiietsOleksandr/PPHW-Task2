@@ -25,6 +25,27 @@ public:
         }
     }
 
+    void deleteSubstring(int lineIndex, int position, int length) {
+        if (lineIndex < 1 || static_cast<size_t>(lineIndex) > array.size()) {
+            std::cerr << "Invalid line index." << std::endl;
+            return;
+        }
+
+        std::string& line = array[lineIndex - 1];
+
+        if (position < 0 || static_cast<size_t>(position) >= line.length()) {
+            std::cerr << "Invalid position." << std::endl;
+            return;
+        }
+
+        if (length < 0 || static_cast<size_t>(position + length) > line.length()) {
+            std::cerr << "Invalid length." << std::endl;
+            return;
+        }
+
+        line.erase(position, length);
+    }
+
     void saveToFile(const std::string& fileName) {
         std::ofstream file(fileName);
         if (file.is_open()) {
@@ -177,6 +198,14 @@ int main() {
                 std::getline(std::cin, substring);
 
                 stringArray.insertSubstring(lineIndex, position, substring);
+                break;
+            }
+            case 8: {
+                int lineIndex, position, length;
+
+                std::cout << "Choose line, index, and number of symbols to delete: ";
+                std::cin >> lineIndex >> position >> length;
+                stringArray.deleteSubstring(lineIndex, position, length);
                 break;
             }
             default: {
