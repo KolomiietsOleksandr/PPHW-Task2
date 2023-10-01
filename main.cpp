@@ -1,22 +1,37 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <stack>
 
 class StringArray {
 private:
     std::vector<std::string> array;
+    std::stack<std::vector<std::string>> historyStack;
+    int consecutiveUndoCount;
 
 public:
+    StringArray() : consecutiveUndoCount(0) {
+        historyStack.push(array);
+    }
+
     size_t getStringCount() const {
         return array.size();
     }
 
     void addString(const std::string& buffer) {
-        array.push_back(buffer);
+        if (!array.empty()) {
+            array.back() += buffer;
+        } else {
+            array.push_back(buffer);
+        }
+        historyStack.push(array);
+        consecutiveUndoCount = 0;
     }
 
     void addEmptyLine() {
         array.push_back("");
+        historyStack.push(array);
+        consecutiveUndoCount = 0;
     }
 
     void printStrings() {
@@ -44,6 +59,16 @@ public:
         }
 
         line.erase(position, length);
+        historyStack.push(array);
+        consecutiveUndoCount = 0;
+    }
+
+    void undo() {
+        if (historyStack.size() > 1 && consecutiveUndoCount < 3) {
+            historyStack.pop();
+            array = historyStack.top();
+            consecutiveUndoCount++;
+        }
     }
 
     void saveToFile(const std::string& fileName) {
@@ -143,7 +168,7 @@ int main() {
     std::string fileName;
 
     while (true) {
-        std::cout << "Write command 1-7: ";
+        std::cout << "Write command 1-9: ";
         std::cin >> command;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
@@ -208,8 +233,12 @@ int main() {
                 stringArray.deleteSubstring(lineIndex, position, length);
                 break;
             }
+            case 9: {
+                stringArray.undo();
+                break;
+            }
             default: {
-                if (command < 0 || command > 8) {
+                if (command < 0 || command > 9) {
                     std::cout << "The command is not implemented." << std::endl;
                 }
                 break;
