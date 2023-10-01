@@ -1,213 +1,187 @@
 #include <iostream>
+#include <vector>
+#include <fstream>
 
-// Функція для додавання рядка до списку Array
-void addString(char*** Array, int* ArrayLines, char* buffer) {
-    if (*ArrayLines == 0) {
-        *Array = (char**)malloc(sizeof(char*));
-        (*Array)[*ArrayLines] = (char*)malloc((strlen(buffer) + 1) * sizeof(char));
-        strcpy((*Array)[*ArrayLines], buffer);
-        (*ArrayLines)++;
-    } else {
-        (*Array)[*ArrayLines - 1] = (char*)realloc((*Array)[*ArrayLines - 1], (strlen((*Array)[*ArrayLines - 1]) + strlen(buffer) + 1) * sizeof(char));
-        strcat((*Array)[*ArrayLines - 1], buffer);
-    }
-}
+class StringArray {
+private:
+    std::vector<std::string> array;
 
-// Функція для виведення всіх рядків зі списку Array
-void printStrings(char** Array, int ArrayLines) {
-    for (int i = 0; i < ArrayLines; i++) {
-        printf("%d: %s\n", i + 1, Array[i]);
+public:
+    size_t getStringCount() const {
+        return array.size();
     }
-}
-// Функція для збереження списку Array у файл
-void saveToFile(char** Array, int ArrayLines, char* FileName) {
-    FILE* file = fopen(FileName, "w");
-    if (file != NULL) {
-        for (int i = 0; i < ArrayLines; i++) {
-            fprintf(file, "%s\n", Array[i]);
+
+    void addString(const std::string& buffer) {
+        array.push_back(buffer);
+    }
+
+    void addEmptyLine() {
+        array.push_back("");
+    }
+
+    void printStrings() {
+        for (size_t i = 0; i < array.size(); i++) {
+            std::cout << i + 1 << ": " << array[i] << std::endl;
         }
-        fclose(file);
-        printf("Array saved to %s\n", FileName);
-    } else {
-        printf("Error opening the file.\n");
     }
-}
 
-// Функція для завантаження списку Array з файлу
-void loadFromFile(char*** Array, int* ArrayLines, char* FileName) {
-    FILE* file = fopen(FileName, "r");
-    if (file != NULL) {
-        char line[400];
-        while (fgets(line, sizeof(line), file) != NULL)
-        {
-            line[strlen(line) - 1] = '\0';
-            (*ArrayLines)++;
-            (*Array) = (char**)realloc((*Array), (*ArrayLines) * sizeof(char*));
-            (*Array)[(*ArrayLines) - 1] = (char*)malloc((strlen(line) + 1) * sizeof(char));
-            strcpy((*Array)[(*ArrayLines) - 1], line);
-        }
-        fclose(file);
-        printf("Array loaded from %s\n", FileName);
-    } else {
-        printf("Error opening the file.\n");
-    }
-}
-
-// Функція для пошуку та виведення підрядка в рядку із зазначенням індексу рядка
-void searchSubstringInLine(char* line, int line_index, char* substring) {
-    int found = 0;
-    int position = -1;
-    int first_letter_pos = -1;
-    int last_letter_pos = -1;
-    int substring_index = 0;
-
-    for (int j = 0; j < strlen(line); j++) {
-        if (line[j] == substring[substring_index]) {
-            if (first_letter_pos == -1) {
-                first_letter_pos = j;
+    void saveToFile(const std::string& fileName) {
+        std::ofstream file(fileName);
+        if (file.is_open()) {
+            for (const std::string& line : array) {
+                file << line << std::endl;
             }
-            last_letter_pos = j;
-            substring_index++;
-
-            if (substring_index == strlen(substring)) {
-                position = first_letter_pos;
-                printf("Word found in line %d, positions %d to %d: %s\n", line_index, position + 1, last_letter_pos + 1, substring);
-                found = 1;
-                substring_index = 0;
-                first_letter_pos = -1;
-            }
+            file.close();
+            std::cout << "Array saved to " << fileName << std::endl;
         } else {
-            substring_index = 0;
-            first_letter_pos = -1;
-            last_letter_pos = -1;
+            std::cerr << "Error opening the file." << std::endl;
         }
     }
 
-    if (!found) {
-        printf("Substring not found in line %d.\n", line_index);
-    }
-}
-
-// Функція для пошуку тексту в масиві рядків
-void searchSubstringInArray(char** Array, int ArrayLines, char* substring) {
-    int found = 0;
-
-    for (int i = 0; i < ArrayLines; i++) {
-        char* line = Array[i];
-        searchSubstringInLine(line, i + 1, substring);
-        found = 1;
-    }
-
-    if (!found) {
-        printf("Substring not found in any line.\n");
-    }
-}
-
-
-// Функція для вставки підрядка в рядок за індексом та позицією
-void insertSubstring(char*** Array, int ArrayLines, int line_index, int position, char* substring) {
-    if (line_index < 1 || line_index > ArrayLines) {
-        printf("Invalid line index.\n");
-        return;
+    void loadFromFile(const std::string& fileName) {
+        std::ifstream file(fileName);
+        if (file.is_open()) {
+            std::string line;
+            while (std::getline(file, line)) {
+                array.push_back(line);
+            }
+            file.close();
+            std::cout << "Array loaded from " << fileName << std::endl;
+        } else {
+            std::cerr << "Error opening the file." << std::endl;
+        }
     }
 
-    if (position < 0 || position > strlen((*Array)[line_index - 1])) {
-        printf("Invalid position.\n");
-        return;
+    void searchSubstringInLine(int lineIndex, const std::string& substring) {
+        int found = 0;
+        int position = -1;
+        int firstLetterPos = -1;
+        int lastLetterPos = -1;
+        size_t substringIndex = 0;
+
+        const std::string& line = array[lineIndex - 1];
+
+        for (size_t j = 0; j < line.length(); j++) {
+            if (line[j] == substring[substringIndex]) {
+                if (firstLetterPos == -1) {
+                    firstLetterPos = j;
+                }
+                lastLetterPos = j;
+                substringIndex++;
+
+                if (substringIndex == substring.length()) {
+                    position = firstLetterPos;
+                    std::cout << "Word found in line " << lineIndex << ", positions " << position + 1 << " to " << lastLetterPos + 1 << ": " << substring << std::endl;
+                    found = 1;
+                    substringIndex = 0;
+                    firstLetterPos = -1;
+                }
+            } else {
+                substringIndex = 0;
+                firstLetterPos = -1;
+                lastLetterPos = -1;
+            }
+        }
+
+        if (!found) {
+            std::cout << "Substring not found in line " << lineIndex << "." << std::endl;
+        }
     }
 
-    int original_length = strlen((*Array)[line_index - 1]);
-    int new_length = original_length + strlen(substring) + 1;
+    void searchSubstringInArray(const std::string& substring) {
+        int found = 0;
 
-    int remaining_length = original_length - position;
+        for (size_t i = 0; i < array.size(); i++) {
+            searchSubstringInLine(i + 1, substring);
+            found = 1;
+        }
 
-    (*Array)[line_index - 1] = (char*)realloc((*Array)[line_index - 1], new_length * sizeof(char));
+        if (!found) {
+            std::cout << "Substring not found in any line." << std::endl;
+        }
+    }
 
-    memmove((*Array)[line_index - 1] + position + strlen(substring), (*Array)[line_index - 1] + position, remaining_length);
+    void insertSubstring(int lineIndex, int position, const std::string& substring) {
+        if (lineIndex < 1 || static_cast<size_t>(lineIndex) > array.size()) {
+            std::cerr << "Invalid line index." << std::endl;
+            return;
+        }
 
-    strncpy((*Array)[line_index - 1] + position, substring, strlen(substring));
-}
+        if (position < 0 || static_cast<size_t>(position) > array[lineIndex - 1].length()) {
+            std::cerr << "Invalid position." << std::endl;
+            return;
+        }
 
+        array[lineIndex - 1].insert(position, substring);
+    }
+};
 
 int main() {
     int command = 0;
+    StringArray stringArray;
+    std::string fileName;
 
-    char** Array = NULL;
-    int ArrayLines = 0;
-
-    char FileName[50];
-
-    while (1) {
-        printf("Write command 1-7:");
-        scanf("%d", &command);
-
-        while (getchar() != '\n');
+    while (true) {
+        std::cout << "Write command 1-7: ";
+        std::cin >> command;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
         switch (command) {
             case 1: {
-                char buffer[400];
-                printf("Write text to append:");
-                scanf("%[^\n]", buffer);
-                addString(&Array, &ArrayLines, buffer);
+                std::string buffer;
+                std::cout << "Write text to append: ";
+                std::getline(std::cin, buffer);
+                stringArray.addString(buffer);
                 break;
             }
             case 2: {
-                ArrayLines++;
-                Array = (char**)realloc(Array, ArrayLines * sizeof(char*));
-                Array[ArrayLines - 1] = (char*)malloc(1);
-                Array[ArrayLines - 1][0] = '\0';
+                stringArray.addEmptyLine();
                 break;
             }
             case 3: {
-                printStrings(Array, ArrayLines);
+                stringArray.printStrings();
                 break;
             }
             case 4: {
-                printf("Write file name to SAVE:");
-                scanf("%s", FileName);
-                saveToFile(Array, ArrayLines, FileName);
+                std::cout << "Write file name to SAVE: ";
+                std::cin >> fileName;
+                stringArray.saveToFile(fileName);
                 break;
             }
             case 5: {
-                printf("Write file name to LOAD:");
-                scanf("%s", FileName);
-                loadFromFile(&Array, &ArrayLines, FileName);
+                std::cout << "Write file name to LOAD: ";
+                std::cin >> fileName;
+                stringArray.loadFromFile(fileName);
                 break;
             }
             case 6: {
-                char substring[100];
-                printf("Enter the substring to search for: ");
-                scanf("%s", substring);
-                searchSubstringInArray(Array, ArrayLines, substring);
+                std::string substring;
+                std::cout << "Enter the substring to search for: ";
+                std::cin >> substring;
+                stringArray.searchSubstringInArray(substring);
                 break;
             }
             case 7: {
-                int line_index, position;
-                char substring[100];
+                int lineIndex, position;
+                std::string substring;
 
-                printf("Enter line index for insertion: ");
-                scanf("%d", &line_index);
+                std::cout << "Enter line index for insertion: ";
+                std::cin >> lineIndex;
 
-                printf("Enter position for insertion (0-%d): ", strlen(Array[line_index - 1]));
-                scanf("%d", &position);
+                std::cout << "Enter position for insertion (0-" << stringArray.getStringCount() << "): ";
+                std::cin >> position;
 
-                printf("Enter substring to insert: ");
-                while (getchar() != '\n');
-                fgets(substring, sizeof(substring), stdin);
-                substring[strcspn(substring, "\n")] = '\0';
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-                insertSubstring(&Array, ArrayLines, line_index, position, substring);
+                std::cout << "Enter substring to insert: ";
+                std::getline(std::cin, substring);
+
+                stringArray.insertSubstring(lineIndex, position, substring);
                 break;
             }
-
-
-            case 8: {
-                system("clear");
-            }
-
             default: {
                 if (command < 0 || command > 8) {
-                    printf("The command is not implemented.\n");
+                    std::cout << "The command is not implemented." << std::endl;
                 }
                 break;
             }
