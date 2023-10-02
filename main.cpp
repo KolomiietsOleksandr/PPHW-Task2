@@ -7,6 +7,7 @@ class StringArray {
 private:
     std::vector<std::string> array;
     std::stack<std::vector<std::string>> historyStack;
+    std::stack<std::vector<std::string>> redoStack; // Added redo stack
     int consecutiveUndoCount;
 
 public:
@@ -25,12 +26,14 @@ public:
             array.push_back(buffer);
         }
         historyStack.push(array);
+        redoStack = std::stack<std::vector<std::string>>(); // Clear redo stack
         consecutiveUndoCount = 0;
     }
 
     void addEmptyLine() {
         array.push_back("");
         historyStack.push(array);
+        redoStack = std::stack<std::vector<std::string>>(); // Clear redo stack
         consecutiveUndoCount = 0;
     }
 
@@ -60,14 +63,25 @@ public:
 
         line.erase(position, length);
         historyStack.push(array);
+        redoStack = std::stack<std::vector<std::string>>(); // Clear redo stack
         consecutiveUndoCount = 0;
     }
 
     void undo() {
         if (historyStack.size() > 1 && consecutiveUndoCount < 3) {
+            redoStack.push(array); // Push the current state to the redo stack
             historyStack.pop();
             array = historyStack.top();
             consecutiveUndoCount++;
+        }
+    }
+
+    void redo() {
+        if (!redoStack.empty()) {
+            historyStack.push(array); // Push the current state to the history stack
+            array = redoStack.top();
+            redoStack.pop();
+            consecutiveUndoCount = 0;
         }
     }
 
@@ -237,8 +251,12 @@ int main() {
                 stringArray.undo();
                 break;
             }
+            case 10: {
+                stringArray.redo();
+                break;
+            }
             default: {
-                if (command < 0 || command > 9) {
+                if (command < 0 || command > 11) {
                     std::cout << "The command is not implemented." << std::endl;
                 }
                 break;
