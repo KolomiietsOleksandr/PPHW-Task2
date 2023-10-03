@@ -10,7 +10,7 @@ private:
     std::stack<std::vector<std::string>> historyStack;
     std::stack<std::vector<std::string>> redoStack;
     int consecutiveUndoCount;
-    std::string clipboard; // Clipboard for Cut/Copy operations
+    std::string clipboard;
 
 public:
     StringArray() : consecutiveUndoCount(0) {
@@ -63,7 +63,7 @@ public:
             return;
         }
 
-        clipboard = line.substr(position, length); // Copy deleted text to clipboard
+        clipboard = line.substr(position, length);
         line.erase(position, length);
         historyStack.push(array);
         redoStack = std::stack<std::vector<std::string>>();
@@ -164,7 +164,7 @@ public:
         }
     }
 
-    void insertSubstring(int lineIndex, int position, const std::string& substring) {
+    void insertSubstring(int lineIndex, int position, const std::string& substring, bool replace = false) {
         if (lineIndex < 1 || static_cast<size_t>(lineIndex) > array.size()) {
             std::cerr << "Invalid line index." << std::endl;
             return;
@@ -175,7 +175,14 @@ public:
             return;
         }
 
-        array[lineIndex - 1].insert(position, substring);
+        if (replace) {
+            int length = substring.length();
+            array[lineIndex - 1].erase(position, length);
+            array[lineIndex - 1].insert(position, substring);
+        } else {
+            array[lineIndex - 1].insert(position, substring);
+        }
+
         historyStack.push(array);
         redoStack = std::stack<std::vector<std::string>>();
         consecutiveUndoCount = 0;
@@ -238,7 +245,7 @@ public:
             return;
         }
 
-        array[lineIndex - 1].insert(position, clipboard); // Paste text from clipboard
+        array[lineIndex - 1].insert(position, clipboard);
         historyStack.push(array);
         redoStack = std::stack<std::vector<std::string>>();
         consecutiveUndoCount = 0;
@@ -249,9 +256,23 @@ int main() {
     int command = 0;
     StringArray stringArray;
     std::string fileName;
+    std::cout << "Commands:\n"
+                 "1 - Append text\n"
+                 "2 - Add empty line\n"
+                 "3 - Print all text\n"
+                 "4 - Save to file\n"
+                 "5 - Load from file\n"
+                 "6 - Search\n"
+                 "7 - Insert\n"
+                 "8 - Delete\n"
+                 "9 - Undo\n"
+                 "10 - Redo\n"
+                 "11 - Cut\n"
+                 "12 - Copy\n"
+                 "13 - Paste\n";
 
     while (true) {
-        std::cout << "Write command 1-12: ";
+        std::cout << "Write command 1-13: ";
         std::cin >> command;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
@@ -293,6 +314,7 @@ int main() {
             case 7: {
                 int lineIndex, position;
                 std::string substring;
+                bool replaceMode;
 
                 std::cout << "Enter line index for insertion: ";
                 std::cin >> lineIndex;
@@ -305,7 +327,10 @@ int main() {
                 std::cout << "Enter substring to insert: ";
                 std::getline(std::cin, substring);
 
-                stringArray.insertSubstring(lineIndex, position, substring);
+                std::cout << "Replace existing text (1 for yes, 0 for no): ";
+                std::cin >> replaceMode;
+
+                stringArray.insertSubstring(lineIndex, position, substring, replaceMode);
                 break;
             }
             case 8: {
@@ -353,5 +378,4 @@ int main() {
             }
         }
     }
-    return 0;
 }
