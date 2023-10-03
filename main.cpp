@@ -2,13 +2,15 @@
 #include <vector>
 #include <fstream>
 #include <stack>
+#include <string>
 
 class StringArray {
 private:
     std::vector<std::string> array;
     std::stack<std::vector<std::string>> historyStack;
-    std::stack<std::vector<std::string>> redoStack; // Added redo stack
+    std::stack<std::vector<std::string>> redoStack;
     int consecutiveUndoCount;
+    std::string clipboard; // Clipboard for Cut/Copy operations
 
 public:
     StringArray() : consecutiveUndoCount(0) {
@@ -26,14 +28,14 @@ public:
             array.push_back(buffer);
         }
         historyStack.push(array);
-        redoStack = std::stack<std::vector<std::string>>(); // Clear redo stack
+        redoStack = std::stack<std::vector<std::string>>();
         consecutiveUndoCount = 0;
     }
 
     void addEmptyLine() {
         array.push_back("");
         historyStack.push(array);
-        redoStack = std::stack<std::vector<std::string>>(); // Clear redo stack
+        redoStack = std::stack<std::vector<std::string>>();
         consecutiveUndoCount = 0;
     }
 
@@ -61,15 +63,16 @@ public:
             return;
         }
 
+        clipboard = line.substr(position, length); // Copy deleted text to clipboard
         line.erase(position, length);
         historyStack.push(array);
-        redoStack = std::stack<std::vector<std::string>>(); // Clear redo stack
+        redoStack = std::stack<std::vector<std::string>>();
         consecutiveUndoCount = 0;
     }
 
     void undo() {
         if (historyStack.size() > 1 && consecutiveUndoCount < 3) {
-            redoStack.push(array); // Push the current state to the redo stack
+            redoStack.push(array);
             historyStack.pop();
             array = historyStack.top();
             consecutiveUndoCount++;
@@ -78,7 +81,7 @@ public:
 
     void redo() {
         if (!redoStack.empty()) {
-            historyStack.push(array); // Push the current state to the history stack
+            historyStack.push(array);
             array = redoStack.top();
             redoStack.pop();
             consecutiveUndoCount = 0;
@@ -173,6 +176,72 @@ public:
         }
 
         array[lineIndex - 1].insert(position, substring);
+        historyStack.push(array);
+        redoStack = std::stack<std::vector<std::string>>();
+        consecutiveUndoCount = 0;
+    }
+
+    void cut(int lineIndex, int position, int length) {
+        if (lineIndex < 1 || static_cast<size_t>(lineIndex) > array.size()) {
+            std::cerr << "Invalid line index." << std::endl;
+            return;
+        }
+
+        std::string& line = array[lineIndex - 1];
+
+        if (position < 0 || static_cast<size_t>(position) >= line.length()) {
+            std::cerr << "Invalid position." << std::endl;
+            return;
+        }
+
+        if (length < 0 || static_cast<size_t>(position + length) > line.length()) {
+            std::cerr << "Invalid length." << std::endl;
+            return;
+        }
+
+        clipboard = line.substr(position, length); // Copy text to clipboard
+        line.erase(position, length);
+        historyStack.push(array);
+        redoStack = std::stack<std::vector<std::string>>();
+        consecutiveUndoCount = 0;
+    }
+
+    void copy(int lineIndex, int position, int length) {
+        if (lineIndex < 1 || static_cast<size_t>(lineIndex) > array.size()) {
+            std::cerr << "Invalid line index." << std::endl;
+            return;
+        }
+
+        const std::string& line = array[lineIndex - 1];
+
+        if (position < 0 || static_cast<size_t>(position) >= line.length()) {
+            std::cerr << "Invalid position." << std::endl;
+            return;
+        }
+
+        if (length < 0 || static_cast<size_t>(position + length) > line.length()) {
+            std::cerr << "Invalid length." << std::endl;
+            return;
+        }
+
+        clipboard = line.substr(position, length); // Copy text to clipboard
+    }
+
+    void paste(int lineIndex, int position) {
+        if (lineIndex < 1 || static_cast<size_t>(lineIndex) > array.size()) {
+            std::cerr << "Invalid line index." << std::endl;
+            return;
+        }
+
+        if (position < 0 || static_cast<size_t>(position) > array[lineIndex - 1].length()) {
+            std::cerr << "Invalid position." << std::endl;
+            return;
+        }
+
+        array[lineIndex - 1].insert(position, clipboard); // Paste text from clipboard
+        historyStack.push(array);
+        redoStack = std::stack<std::vector<std::string>>();
+        consecutiveUndoCount = 0;
     }
 };
 
@@ -182,7 +251,7 @@ int main() {
     std::string fileName;
 
     while (true) {
-        std::cout << "Write command 1-9: ";
+        std::cout << "Write command 1-12: ";
         std::cin >> command;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
@@ -255,8 +324,29 @@ int main() {
                 stringArray.redo();
                 break;
             }
+            case 11: {
+                int cutLine, cutPos, cutLen;
+                std::cout << "Choose line, position, and length to cut: ";
+                std::cin >> cutLine >> cutPos >> cutLen;
+                stringArray.cut(cutLine, cutPos, cutLen);
+                break;
+            }
+            case 12: {
+                int copyLine, copyPos, copyLen;
+                std::cout << "Choose line, position, and length to copy: ";
+                std::cin >> copyLine >> copyPos >> copyLen;
+                stringArray.copy(copyLine, copyPos, copyLen);
+                break;
+            }
+            case 13: {
+                int pasteLine, pastePos;
+                std::cout << "Choose line and position to paste: ";
+                std::cin >> pasteLine >> pastePos;
+                stringArray.paste(pasteLine, pastePos);
+                break;
+            }
             default: {
-                if (command < 0 || command > 11) {
+                if (command < 0 || command > 13) {
                     std::cout << "The command is not implemented." << std::endl;
                 }
                 break;
