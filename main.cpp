@@ -17,6 +17,14 @@ public:
         historyStack.push(array);
     }
 
+    std::vector<std::string> getStrings() const {
+        return array;
+    }
+
+    void setStrings(const std::vector<std::string>& data) {
+        array = data;
+    }
+
     size_t getStringCount() const {
         return array.size();
     }
@@ -88,82 +96,6 @@ public:
         }
     }
 
-    void saveToFile(const std::string& fileName) {
-        std::ofstream file(fileName);
-        if (file.is_open()) {
-            for (const std::string& line : array) {
-                file << line << std::endl;
-            }
-            file.close();
-            std::cout << "Array saved to " << fileName << std::endl;
-        } else {
-            std::cerr << "Error opening the file." << std::endl;
-        }
-    }
-
-    void loadFromFile(const std::string& fileName) {
-        std::ifstream file(fileName);
-        if (file.is_open()) {
-            std::string line;
-            while (std::getline(file, line)) {
-                array.push_back(line);
-            }
-            file.close();
-            std::cout << "Array loaded from " << fileName << std::endl;
-        } else {
-            std::cerr << "Error opening the file." << std::endl;
-        }
-    }
-
-    void searchSubstringInLine(int lineIndex, const std::string& substring) {
-        int found = 0;
-        int position = -1;
-        int firstLetterPos = -1;
-        int lastLetterPos = -1;
-        size_t substringIndex = 0;
-
-        const std::string& line = array[lineIndex - 1];
-
-        for (size_t j = 0; j < line.length(); j++) {
-            if (line[j] == substring[substringIndex]) {
-                if (firstLetterPos == -1) {
-                    firstLetterPos = j;
-                }
-                lastLetterPos = j;
-                substringIndex++;
-
-                if (substringIndex == substring.length()) {
-                    position = firstLetterPos;
-                    std::cout << "Word found in line " << lineIndex << ", positions " << position + 1 << " to " << lastLetterPos + 1 << ": " << substring << std::endl;
-                    found = 1;
-                    substringIndex = 0;
-                    firstLetterPos = -1;
-                }
-            } else {
-                substringIndex = 0;
-                firstLetterPos = -1;
-                lastLetterPos = -1;
-            }
-        }
-
-        if (!found) {
-            std::cout << "Substring not found in line " << lineIndex << "." << std::endl;
-        }
-    }
-
-    void searchSubstringInArray(const std::string& substring) {
-        int found = 0;
-
-        for (size_t i = 0; i < array.size(); i++) {
-            searchSubstringInLine(i + 1, substring);
-            found = 1;
-        }
-
-        if (!found) {
-            std::cout << "Substring not found in any line." << std::endl;
-        }
-    }
-
     void insertSubstring(int lineIndex, int position, const std::string& substring, bool replace = false) {
         if (lineIndex < 1 || static_cast<size_t>(lineIndex) > array.size()) {
             std::cerr << "Invalid line index." << std::endl;
@@ -206,7 +138,7 @@ public:
             return;
         }
 
-        clipboard = line.substr(position, length); // Copy text to clipboard
+        clipboard = line.substr(position, length);
         line.erase(position, length);
         historyStack.push(array);
         redoStack = std::stack<std::vector<std::string>>();
@@ -231,7 +163,7 @@ public:
             return;
         }
 
-        clipboard = line.substr(position, length); // Copy text to clipboard
+        clipboard = line.substr(position, length);
     }
 
     void paste(int lineIndex, int position) {
@@ -251,6 +183,58 @@ public:
         consecutiveUndoCount = 0;
     }
 };
+
+class SearchFunctions {
+public:
+    static void searchSubstringInArray(const std::vector<std::string>& array, const std::string& substring) {
+        int foundCount = 0;
+
+        for (size_t i = 0; i < array.size(); i++) {
+            size_t found = array[i].find(substring);
+            if (found != std::string::npos) {
+                std::cout << "Substring found in line " << i + 1 << " at position " << found << ": " << substring << std::endl;
+                foundCount++;
+            }
+        }
+
+        if (foundCount == 0) {
+            std::cout << "Substring not found in any line." << std::endl;
+        }
+    }
+};
+
+class FilesSL {
+public:
+    static void saveToFile(const std::string& fileName, const std::vector<std::string>& data) {
+        std::ofstream file(fileName);
+        if (file.is_open()) {
+            for (const std::string& line : data) {
+                file << line << std::endl;
+            }
+            file.close();
+            std::cout << "Array saved to " << fileName << std::endl;
+        } else {
+            std::cerr << "Error opening the file." << std::endl;
+        }
+    }
+
+    static std::vector<std::string> loadFromFile(const std::string& fileName) {
+        std::vector<std::string> loadedData;
+        std::ifstream file(fileName);
+        if (file.is_open()) {
+            std::string line;
+            while (std::getline(file, line)) {
+                loadedData.push_back(line);
+            }
+            file.close();
+            std::cout << "Array loaded from " << fileName << std::endl;
+        } else {
+            std::cerr << "Error opening the file." << std::endl;
+        }
+        return loadedData;
+    }
+};
+
 
 int main() {
     int command = 0;
@@ -295,20 +279,22 @@ int main() {
             case 4: {
                 std::cout << "Write file name to SAVE: ";
                 std::cin >> fileName;
-                stringArray.saveToFile(fileName);
+                FilesSL::saveToFile(fileName, stringArray.getStrings());
                 break;
             }
             case 5: {
                 std::cout << "Write file name to LOAD: ";
                 std::cin >> fileName;
-                stringArray.loadFromFile(fileName);
+                stringArray.setStrings(FilesSL::loadFromFile(fileName));
                 break;
             }
             case 6: {
                 std::string substring;
-                std::cout << "Enter the substring to search for: ";
+
+                std::cout << "Enter substring to search for: ";
                 std::cin >> substring;
-                stringArray.searchSubstringInArray(substring);
+
+                SearchFunctions::searchSubstringInArray(stringArray.getStrings(), substring);
                 break;
             }
             case 7: {
